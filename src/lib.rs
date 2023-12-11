@@ -20,9 +20,8 @@ pub fn build() {
     let src = cwd.join("src/");
     let dist = cwd.join("dist/");
 
-    if !dist.exists() {
-        fs::create_dir(&dist).unwrap();
-    }
+    fs::remove_dir_all(&dist).unwrap_or(());
+    fs::create_dir(&dist).unwrap();
 
     // Copy src -> dist
     for entry in fs::read_dir(&src).unwrap() {
@@ -54,11 +53,18 @@ pub fn serve() {
     let dist = cwd.join("dist/");
 
     rouille::start_server("localhost:8000", move |request| {
-        let response = rouille::match_assets(&request, &dist);
-        if response.is_success() {
-            return response;
-        }
+        build();
 
-        rouille::Response::html("404 Not found")
+        if request.url() == "/" {
+            // List all files in dist
+            let mut content = String::new();
+            for entry in fs::read_dir(&dist).unwrap() {
+                let filename = &entry.unwrap().file_name();
+                let filename = filename.to_str().unwrap();
+                content += format!("<a href=\"{}\">{}</a><br>", filename, filename).as_str();
+            }
+            return rouille::Response::html(content);
+        }
+        rouille::match_assets(&request, &dist)
     });
 }
