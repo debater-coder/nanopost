@@ -1,21 +1,9 @@
 use std::fs;
 
-fn process_html(content: &str) -> String {
-    (r#"<!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                </head>
-                <body>"#
-        .to_owned()
-        + content)
-        .to_owned()
-        + r#"</body>
-                </html>"#
-}
-
-pub fn build() {
+pub fn build<F>(process_html: F)
+where
+    F: Fn(&str) -> String,
+{
     let cwd = std::env::current_dir().unwrap();
     let src = cwd.join("src/");
     let dist = cwd.join("dist/");
@@ -53,8 +41,6 @@ pub fn serve() {
     let dist = cwd.join("dist/");
 
     rouille::start_server("localhost:8000", move |request| {
-        build();
-
         if request.url() == "/" {
             // List all files in dist
             let mut content = String::new();
